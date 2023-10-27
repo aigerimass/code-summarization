@@ -21,9 +21,7 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import
 import os
-import sys
-import bleu
-import pickle
+import code_summarization.src.bleu
 import torch
 import json
 import random
@@ -31,15 +29,12 @@ import logging
 import argparse
 import numpy as np
 from io import open
-from itertools import cycle
-import torch.nn as nn
-from model import Seq2Seq
-from tqdm import tqdm, trange
-from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler,TensorDataset
-from torch.utils.data.distributed import DistributedSampler
+from code_summarization.src.model import Seq2Seq
+from tqdm import tqdm
+from torch.utils.data import DataLoader, SequentialSampler, RandomSampler,TensorDataset
 
-from transformers import (WEIGHTS_NAME, AdamW, get_linear_schedule_with_warmup,
-              RobertaConfig, RobertaModel, RobertaTokenizer)
+from transformers import (AdamW, get_linear_schedule_with_warmup,
+                          RobertaConfig, RobertaModel, RobertaTokenizer)
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
                     level = logging.INFO)
@@ -358,7 +353,7 @@ def main():
                         f1.write(str(gold.idx)+'\t'+gold.target+'\n')     
 
                 (goldMap, predictionMap) = bleu.computeMaps(predictions, os.path.join(args.output_dir, "dev.gold")) 
-                dev_bleu=round(bleu.bleuFromMaps(goldMap, predictionMap)[0],2)
+                dev_bleu=round(bleu.bleuFromMaps(goldMap, predictionMap)[0], 2)
                 logger.info("  %s = %s "%("bleu-4",str(dev_bleu)))
                 logger.info("  "+"*"*20)    
                 if dev_bleu > best_bleu:
@@ -417,7 +412,7 @@ def main():
                 f1.write(str(gold.idx)+'\t'+gold.target+'\n')     
 
         (goldMap, predictionMap) = bleu.computeMaps(predictions, os.path.join(args.output_dir, "test.gold")) 
-        dev_bleu=round(bleu.bleuFromMaps(goldMap, predictionMap)[0],2)
+        dev_bleu=round(bleu.bleuFromMaps(goldMap, predictionMap)[0], 2)
         logger.info("  %s = %s "%("bleu-4",str(dev_bleu)))
         logger.info("  "+"*"*20)    
 
