@@ -2,8 +2,8 @@
 name = "code-summarization"
 version = "0.1.0"
 description = ""
-authors = ["Aigerim Assylkhanova assylkhanova0@gmail.com",
-"Nikita Abramov n8ron2206@gmail.com"]
+authors = ["Aigerim Assylkhanova <assylkhanova0@gmail.com>",
+"Nikita Abramov <n8ron2206@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
