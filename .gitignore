@@ -1,0 +1,39 @@
+# Ignore virtual environments
+venv/
+.venv/
+env/
+/.python-version
+
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+
+# Ignore logs and output files
+*.log
+*.txt
+*.csv
+
+# Ignore model artifacts and checkpoints
+models/
+checkpoints/
+
+# Ignore data files (if they are large or proprietary)
+data/
+dataset/
+*.data
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore project specific environment files
+.env
+
+# Ignore system and IDE files
+.DS_Store
+.idea/
+.vscode/
+
+# Ignore miscellaneous
+*.bak
+*.swp
+*.swo
