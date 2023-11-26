@@ -2,15 +2,17 @@
 name = "code-summarization"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Aigerim Assylkhanova assylkhanova0@gmail.com",
+"Nikita Abramov n8ron2206@gmail.com"]
 readme = "README.md"
-packages = [{include = "code_summarization"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 torch = "^2.1.1"
 numpy = "^1.26.2"
 transformers = "^4.35.2"
+
+[tool.poetry.group.dev.dependencies]
 mypy = "^1.7.1"
 black = "^23.11.0"
 
