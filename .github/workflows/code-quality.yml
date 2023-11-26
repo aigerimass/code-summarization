@@ -24,7 +24,7 @@ jobs:
         run: poetry install
 
       - name: Install mypy dependency
-        run: mypy --install-types
+        run: poetry run mypy --install-types
 
       - name: Check with mypy
         run: poetry run mypy .
