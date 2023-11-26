@@ -3,9 +3,6 @@
 
 import torch
 import torch.nn as nn
-import torch
-from torch.autograd import Variable
-import copy
 
 
 class Seq2Seq(nn.Module):
@@ -24,14 +21,14 @@ class Seq2Seq(nn.Module):
     """
 
     def __init__(
-        self,
-        encoder,
-        decoder,
-        config,
-        beam_size=None,
-        max_length=None,
-        sos_id=None,
-        eos_id=None,
+            self,
+            encoder,
+            decoder,
+            config,
+            beam_size=None,
+            max_length=None,
+            sos_id=None,
+            eos_id=None,
     ):
         super(Seq2Seq, self).__init__()
         self.encoder = encoder
@@ -58,7 +55,7 @@ class Seq2Seq(nn.Module):
         mask = source_ids.ne(1)[:, None, :] * source_ids.ne(1)[:, :, None]
         encoder_output = self.encoder(source_ids, attention_mask=mask, use_cache=True)
         ids = torch.cat((source_ids, target_ids), -1)
-        mask = self.bias[:, source_ids.size(-1) : ids.size(-1), : ids.size(-1)].bool()
+        mask = self.bias[:, source_ids.size(-1): ids.size(-1), : ids.size(-1)].bool()
         mask = mask & ids[:, None, :].ne(1)
 
         out = self.decoder(
@@ -90,14 +87,14 @@ class Seq2Seq(nn.Module):
         for i in range(source_ids.shape[0]):
             context = [
                 [
-                    x[i : i + 1, :, : source_len[i]].repeat(self.beam_size, 1, 1, 1)
+                    x[i: i + 1, :, : source_len[i]].repeat(self.beam_size, 1, 1, 1)
                     for x in y
                 ]
                 for y in encoder_output.past_key_values
             ]
             beam = Beam(self.beam_size, self.sos_id, self.eos_id)
-            input_ids = beam.getCurrentState()
-            context_ids = source_ids[i : i + 1, : source_len[i]].repeat(
+            input_ids = beam.get_current_state()
+            context_ids = source_ids[i: i + 1, : source_len[i]].repeat(
                 self.beam_size, 1
             )
             for _ in range(self.max_length):
@@ -106,8 +103,8 @@ class Seq2Seq(nn.Module):
 
                 ids = torch.cat((context_ids, input_ids), -1)
                 mask = self.bias[
-                    :, context_ids.size(-1) : ids.size(-1), : ids.size(-1)
-                ].bool()
+                       :, context_ids.size(-1): ids.size(-1), : ids.size(-1)
+                       ].bool()
                 mask = mask & ids[:, None, :].ne(1)
                 out = self.decoder(
                     input_ids, attention_mask=mask, past_key_values=context
@@ -116,11 +113,11 @@ class Seq2Seq(nn.Module):
                 out = self.lsm(self.lm_head(hidden_states)).data
                 beam.advance(out)
                 input_ids.data.copy_(
-                    input_ids.data.index_select(0, beam.getCurrentOrigin())
+                    input_ids.data.index_select(0, beam.get_current_origin())
                 )
-                input_ids = torch.cat((input_ids, beam.getCurrentState()), -1)
-            hyp = beam.getHyp(beam.getFinal())
-            pred = beam.buildTargetTokens(hyp)[: self.beam_size]
+                input_ids = torch.cat((input_ids, beam.get_current_state()), -1)
+            hyp = beam.get_hyp(beam.get_final())
+            pred = beam.build_target_tokens(hyp)[: self.beam_size]
             pred = [
                 torch.cat(
                     [x.view(-1) for x in p] + [zero] * (self.max_length - len(p))
@@ -147,20 +144,20 @@ class Beam(object):
         self.nextYs[0][0] = sos
         # Has EOS topped the beam yet.
         self._eos = eos
-        self.eosTop = False
+        self.eos_top = False
         # Time and k pair for finished.
         self.finished = []
 
-    def getCurrentState(self):
-        "Get the outputs for the current timestep."
+    def get_current_state(self):
+        """Get the outputs for the current timestep."""
         batch = self.tt.LongTensor(self.nextYs[-1]).view(-1, 1)
         return batch
 
-    def getCurrentOrigin(self):
-        "Get the backpointers for the current timestep."
+    def get_current_origin(self):
+        """Get the backpointers for the current timestep."""
         return self.prevKs[-1]
 
-    def advance(self, wordLk):
+    def advance(self, word_lk):
         """
         Given prob over words for every last beam `wordLk` and attention
         `attnOut`: Compute and update the beam search.
@@ -172,28 +169,28 @@ class Beam(object):
 
         Returns: True if beam search is complete.
         """
-        numWords = wordLk.size(1)
+        num_words = word_lk.size(1)
 
         # Sum the previous scores.
         if len(self.prevKs) > 0:
-            beamLk = wordLk + self.scores.unsqueeze(1).expand_as(wordLk)
+            beam_lk = word_lk + self.scores.unsqueeze(1).expand_as(word_lk)
 
             # Don't let EOS have children.
             for i in range(self.nextYs[-1].size(0)):
                 if self.nextYs[-1][i] == self._eos:
-                    beamLk[i] = -1e20
+                    beam_lk[i] = -1e20
         else:
-            beamLk = wordLk[0]
-        flatBeamLk = beamLk.view(-1)
-        bestScores, bestScoresId = flatBeamLk.topk(self.size, 0, True, True)
+            beam_lk = word_lk[0]
+        flat_beam_lk = beam_lk.view(-1)
+        best_scores, best_scores_id = flat_beam_lk.topk(self.size, 0, True, True)
 
-        self.scores = bestScores
+        self.scores = best_scores
 
-        # bestScoresId is flattened beam x word array, so calculate which
+        # best_scores_id is flattened beam x word array, so calculate which
         # word and beam each score came from
-        prevK = bestScoresId // numWords
-        self.prevKs.append(prevK)
-        self.nextYs.append((bestScoresId - prevK * numWords))
+        prev_k = best_scores_id // num_words
+        self.prevKs.append(prev_k)
+        self.nextYs.append((best_scores_id - prev_k * num_words))
 
         for i in range(self.nextYs[-1].size(0)):
             if self.nextYs[-1][i] == self._eos:
@@ -202,12 +199,12 @@ class Beam(object):
 
         # End condition is when top-of-beam is EOS and no global score.
         if self.nextYs[-1][0] == self._eos:
-            self.eosTop = True
+            self.eos_top = True
 
     def done(self):
-        return self.eosTop and len(self.finished) >= self.size
+        return self.eos_top and len(self.finished) >= self.size
 
-    def getFinal(self):
+    def get_final(self):
         if len(self.finished) == 0:
             self.finished.append((self.scores[0], len(self.nextYs) - 1, 0))
         self.finished.sort(key=lambda a: -a[0])
@@ -221,7 +218,7 @@ class Beam(object):
             self.finished += unfinished[: self.size - len(self.finished)]
         return self.finished[: self.size]
 
-    def getHyp(self, beam_res):
+    def get_hyp(self, beam_res):
         """
         Walk back to construct the full hypothesis.
         """
@@ -234,7 +231,7 @@ class Beam(object):
             hyps.append(hyp[::-1])
         return hyps
 
-    def buildTargetTokens(self, preds):
+    def build_target_tokens(self, preds):
         sentence = []
         for pred in preds:
             tokens = []

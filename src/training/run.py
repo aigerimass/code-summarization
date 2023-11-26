@@ -21,9 +21,7 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import
 import os
-import sys
-import bleu
-import pickle
+from src.training.metrics import bleu
 import torch
 import json
 import random
@@ -31,20 +29,16 @@ import logging
 import argparse
 import numpy as np
 from io import open
-from itertools import cycle
-import torch.nn as nn
-from model import Seq2Seq
-from tqdm import tqdm, trange
+from src.model.model import Seq2Seq
+from tqdm import tqdm
 from torch.utils.data import (
     DataLoader,
-    Dataset,
     SequentialSampler,
     RandomSampler,
     TensorDataset,
 )
-from torch.utils.data.distributed import DistributedSampler
 
-from transformers import ( # type: ignore
+from transformers import (  # type: ignore
     WEIGHTS_NAME,
     AdamW,
     get_linear_schedule_with_warmup,
@@ -419,7 +413,7 @@ def main():
                                 round(
                                     np.mean(
                                         losses[
-                                            -100 * args.gradient_accumulation_steps :
+                                            -100 * args.gradient_accumulation_steps:
                                         ]
                                     ),
                                     4,
@@ -522,10 +516,10 @@ def main():
                         f.write(str(gold.idx) + "\t" + ref + "\n")
                         f1.write(str(gold.idx) + "\t" + gold.target + "\n")
 
-                (goldMap, predictionMap) = bleu.computeMaps(
+                (goldMap, predictionMap) = bleu.compute_maps(
                     predictions, os.path.join(args.output_dir, "dev.gold")
                 )
-                dev_bleu = round(bleu.bleuFromMaps(goldMap, predictionMap)[0], 2)
+                dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
                 logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
                 logger.info("  " + "*" * 20)
                 if dev_bleu > best_bleu:
@@ -593,10 +587,10 @@ def main():
                 f.write(str(gold.idx) + "\t" + ref + "\n")
                 f1.write(str(gold.idx) + "\t" + gold.target + "\n")
 
-        (goldMap, predictionMap) = bleu.computeMaps(
+        (goldMap, predictionMap) = bleu.compute_maps(
             predictions, os.path.join(args.output_dir, "test.gold")
         )
-        dev_bleu = round(bleu.bleuFromMaps(goldMap, predictionMap)[0], 2)
+        dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
         logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
         logger.info("  " + "*" * 20)
 
