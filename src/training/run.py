@@ -21,7 +21,9 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import
 import os
+import hydra
 from src.training.metrics import bleu
+from omegaconf import DictConfig
 import torch
 import json
 import random
@@ -59,10 +61,10 @@ class Example(object):
     """A single training/test example."""
 
     def __init__(
-        self,
-        idx,
-        source,
-        target,
+            self,
+            idx,
+            source,
+            target,
     ):
         self.idx = idx
         self.source = source
@@ -96,10 +98,10 @@ class InputFeatures(object):
     """A single training/test features for a example."""
 
     def __init__(
-        self,
-        example_id,
-        source_ids,
-        target_ids,
+            self,
+            example_id,
+            source_ids,
+            target_ids,
     ):
         self.example_id = example_id
         self.source_ids = source_ids
@@ -113,9 +115,9 @@ def convert_examples_to_features(examples, tokenizer, args, stage=None):
         # source
         source_tokens = tokenizer.tokenize(example.source)[: args.max_source_length - 5]
         source_tokens = (
-            [tokenizer.cls_token, "<encoder-decoder>", tokenizer.sep_token, "<mask0>"]
-            + source_tokens
-            + [tokenizer.sep_token]
+                [tokenizer.cls_token, "<encoder-decoder>", tokenizer.sep_token, "<mask0>"]
+                + source_tokens
+                + [tokenizer.sep_token]
         )
         source_ids = tokenizer.convert_tokens_to_ids(source_tokens)
         padding_length = args.max_source_length - len(source_ids)
@@ -126,8 +128,8 @@ def convert_examples_to_features(examples, tokenizer, args, stage=None):
             target_tokens = tokenizer.tokenize("None")
         else:
             target_tokens = tokenizer.tokenize(example.target)[
-                : args.max_target_length - 2
-            ]
+                            : args.max_target_length - 2
+                            ]
         target_tokens = ["<mask0>"] + target_tokens + [tokenizer.sep_token]
         target_ids = tokenizer.convert_tokens_to_ids(target_tokens)
         padding_length = args.max_target_length - len(target_ids)
@@ -171,120 +173,10 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
 
 
-def main():
-    parser = argparse.ArgumentParser()
-
-    ## Required parameters
-    parser.add_argument(
-        "--model_name_or_path",
-        default=None,
-        type=str,
-        required=True,
-        help="Path to pre-trained model: e.g. roberta-base",
-    )
-    parser.add_argument(
-        "--output_dir",
-        default=None,
-        type=str,
-        required=True,
-        help="The output directory where the model predictions and checkpoints will be written.",
-    )
-
-    ## Other parameters
-    parser.add_argument(
-        "--train_filename",
-        default=None,
-        type=str,
-        help="The train filename. Should contain the .jsonl files for this task.",
-    )
-    parser.add_argument(
-        "--dev_filename",
-        default=None,
-        type=str,
-        help="The dev filename. Should contain the .jsonl files for this task.",
-    )
-    parser.add_argument(
-        "--test_filename",
-        default=None,
-        type=str,
-        help="The test filename. Should contain the .jsonl files for this task.",
-    )
-    parser.add_argument(
-        "--max_source_length",
-        default=64,
-        type=int,
-        help="The maximum total source sequence length after tokenization. Sequences longer "
-        "than this will be truncated, sequences shorter will be padded.",
-    )
-    parser.add_argument(
-        "--max_target_length",
-        default=32,
-        type=int,
-        help="The maximum total target sequence length after tokenization. Sequences longer "
-        "than this will be truncated, sequences shorter will be padded.",
-    )
-    parser.add_argument(
-        "--do_train", action="store_true", help="Whether to run training."
-    )
-    parser.add_argument(
-        "--do_eval", action="store_true", help="Whether to run eval on the dev set."
-    )
-    parser.add_argument(
-        "--do_test", action="store_true", help="Whether to run eval on the dev set."
-    )
-    parser.add_argument(
-        "--no_cuda", action="store_true", help="Avoid using CUDA when available"
-    )
-
-    parser.add_argument(
-        "--train_batch_size",
-        default=8,
-        type=int,
-        help="Batch size per GPU/CPU for training.",
-    )
-    parser.add_argument(
-        "--eval_batch_size",
-        default=8,
-        type=int,
-        help="Batch size per GPU/CPU for evaluation.",
-    )
-    parser.add_argument(
-        "--gradient_accumulation_steps",
-        type=int,
-        default=1,
-        help="Number of updates steps to accumulate before performing a backward/update pass.",
-    )
-    parser.add_argument(
-        "--learning_rate",
-        default=5e-5,
-        type=float,
-        help="The initial learning rate for Adam.",
-    )
-    parser.add_argument(
-        "--beam_size", default=10, type=int, help="beam size for beam search"
-    )
-    parser.add_argument(
-        "--weight_decay", default=0.0, type=float, help="Weight deay if we apply some."
-    )
-    parser.add_argument(
-        "--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer."
-    )
-    parser.add_argument(
-        "--max_grad_norm", default=1.0, type=float, help="Max gradient norm."
-    )
-    parser.add_argument(
-        "--num_train_epochs",
-        default=3,
-        type=int,
-        help="Total number of training epochs to perform.",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=42, help="random seed for initialization"
-    )
-
-    # print arguments
-    args = parser.parse_args()
+@hydra.main(config_path="../training/configs", config_name="finetune", version_base=None)
+def main(training_config: DictConfig):
     # set log
+    print("Here")
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -292,46 +184,46 @@ def main():
     )
     # set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.n_gpu = torch.cuda.device_count()
-    args.device = device
-    logger.info("device: %s, n_gpu: %s", device, args.n_gpu)
+    training_config.n_gpu = torch.cuda.device_count()
+    # training_config.device = device
+    logger.info("device: %s, n_gpu: %s", device, training_config.n_gpu)
 
     # Set seed
-    set_seed(args.seed)
+    set_seed(training_config.seed)
 
     # make dir if output_dir not exist
-    if os.path.exists(args.output_dir) is False:
-        os.makedirs(args.output_dir)
+    if os.path.exists(training_config.output_dir) is False:
+        os.makedirs(training_config.output_dir)
 
     # build model
-    tokenizer = RobertaTokenizer.from_pretrained(args.model_name_or_path)
-    config = RobertaConfig.from_pretrained(args.model_name_or_path)
+    tokenizer = RobertaTokenizer.from_pretrained(training_config.model_name_or_path)
+    config = RobertaConfig.from_pretrained(training_config.model_name_or_path)
     # import！！！you must set is_decoder as True for generation
     config.is_decoder = True
-    encoder = RobertaModel.from_pretrained(args.model_name_or_path, config=config)
+    encoder = RobertaModel.from_pretrained(training_config.model_name_or_path, config=config)
 
     model = Seq2Seq(
         encoder=encoder,
         decoder=encoder,
         config=config,
-        beam_size=args.beam_size,
-        max_length=args.max_target_length,
+        beam_size=training_config.beam_size,
+        max_length=training_config.max_target_length,
         sos_id=tokenizer.convert_tokens_to_ids(["<mask0>"])[0],
         eos_id=tokenizer.sep_token_id,
     )
 
-    logger.info("Training/evaluation parameters %s", args)
-    model.to(args.device)
+    logger.info("Training/evaluation parameters %s", training_config)
+    model.to(device)
 
-    if args.n_gpu > 1:
+    if training_config.n_gpu > 1:
         # multi-gpu training
         model = torch.nn.DataParallel(model)
 
-    if args.do_train:
+    if training_config.do_train:
         # Prepare training data loader
-        train_examples = read_examples(args.train_filename)
+        train_examples = read_examples(training_config.train_filename)
         train_features = convert_examples_to_features(
-            train_examples, tokenizer, args, stage="train"
+            train_examples, tokenizer, training_config, stage="train"
         )
         all_source_ids = torch.tensor(
             [f.source_ids for f in train_features], dtype=torch.long
@@ -344,7 +236,7 @@ def main():
         train_dataloader = DataLoader(
             train_data,
             sampler=train_sampler,
-            batch_size=args.train_batch_size // args.gradient_accumulation_steps,
+            batch_size=training_config.train_batch_size // training_config.gradient_accumulation_steps,
         )
 
         # Prepare optimizer and schedule (linear warmup and decay)
@@ -356,7 +248,7 @@ def main():
                     for n, p in model.named_parameters()
                     if not any(nd in n for nd in no_decay)
                 ],
-                "weight_decay": args.weight_decay,
+                "weight_decay": training_config.weight_decay,
             },
             {
                 "params": [
@@ -368,12 +260,12 @@ def main():
             },
         ]
         optimizer = AdamW(
-            optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon
+            optimizer_grouped_parameters, lr=training_config.learning_rate, eps=training_config.adam_epsilon
         )
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=int(len(train_dataloader) * args.num_train_epochs * 0.1),
-            num_training_steps=len(train_dataloader) * args.num_train_epochs,
+            num_warmup_steps=int(len(train_dataloader) * training_config.num_train_epochs * 0.1),
+            num_training_steps=len(train_dataloader) * training_config.num_train_epochs,
         )
 
         # Start training
@@ -381,53 +273,53 @@ def main():
         logger.info("  Num examples = %d", len(train_examples))
         logger.info(
             "  Batch size = %d",
-            args.train_batch_size * args.gradient_accumulation_steps,
+            training_config.train_batch_size * training_config.gradient_accumulation_steps,
         )
-        logger.info("  Num epoch = %d", args.num_train_epochs)
+        logger.info("  Num epoch = %d", training_config.num_train_epochs)
 
         model.train()
         patience, best_bleu, losses, dev_dataset = 0, 0, [], {}
-        for epoch in range(args.num_train_epochs):
+        for epoch in range(training_config.num_train_epochs):
             for idx, batch in enumerate(train_dataloader):
                 batch = tuple(t.to(device) for t in batch)
                 source_ids, target_ids = batch
                 loss, _, _ = model(source_ids=source_ids, target_ids=target_ids)
 
-                if args.n_gpu > 1:
+                if training_config.n_gpu > 1:
                     loss = loss.mean()  # mean() to average on multi-gpu.
-                if args.gradient_accumulation_steps > 1:
-                    loss = loss / args.gradient_accumulation_steps
+                if training_config.gradient_accumulation_steps > 1:
+                    loss = loss / training_config.gradient_accumulation_steps
 
                 losses.append(loss.item())
                 loss.backward()
-                if len(losses) % args.gradient_accumulation_steps == 0:
+                if len(losses) % training_config.gradient_accumulation_steps == 0:
                     # Update parameters
                     optimizer.step()
                     optimizer.zero_grad()
                     scheduler.step()
-                    if len(losses) // args.gradient_accumulation_steps % 100 == 0:
+                    if len(losses) // training_config.gradient_accumulation_steps % 100 == 0:
                         logger.info(
                             "epoch {} step {} loss {}".format(
                                 epoch,
-                                len(losses) // args.gradient_accumulation_steps,
+                                len(losses) // training_config.gradient_accumulation_steps,
                                 round(
                                     np.mean(
                                         losses[
-                                            -100 * args.gradient_accumulation_steps:
+                                        -100 * training_config.gradient_accumulation_steps:
                                         ]
                                     ),
                                     4,
                                 ),
                             )
                         )
-            if args.do_eval:
+            if training_config.do_eval:
                 # Eval model with dev dataset
                 if "dev_loss" in dev_dataset:
                     eval_examples, eval_data = dev_dataset["dev_loss"]
                 else:
-                    eval_examples = read_examples(args.dev_filename)
+                    eval_examples = read_examples(training_config.dev_filename)
                     eval_features = convert_examples_to_features(
-                        eval_examples, tokenizer, args, stage="dev"
+                        eval_examples, tokenizer, training_config, stage="dev"
                     )
                     all_source_ids = torch.tensor(
                         [f.source_ids for f in eval_features], dtype=torch.long
@@ -439,12 +331,12 @@ def main():
                     dev_dataset["dev_loss"] = eval_examples, eval_data
                 eval_sampler = SequentialSampler(eval_data)
                 eval_dataloader = DataLoader(
-                    eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size
+                    eval_data, sampler=eval_sampler, batch_size=training_config.eval_batch_size
                 )
 
                 logger.info("\n***** Running evaluation *****")
                 logger.info("  Num examples = %d", len(eval_examples))
-                logger.info("  Batch size = %d", args.eval_batch_size)
+                logger.info("  Batch size = %d", training_config.eval_batch_size)
 
                 # Start Evaling model
                 model.eval()
@@ -471,12 +363,12 @@ def main():
                 if "dev_bleu" in dev_dataset:
                     eval_examples, eval_data = dev_dataset["dev_bleu"]
                 else:
-                    eval_examples = read_examples(args.dev_filename)
+                    eval_examples = read_examples(training_config.dev_filename)
                     eval_examples = random.sample(
                         eval_examples, min(1000, len(eval_examples))
                     )
                     eval_features = convert_examples_to_features(
-                        eval_examples, tokenizer, args, stage="test"
+                        eval_examples, tokenizer, training_config, stage="test"
                     )
                     all_source_ids = torch.tensor(
                         [f.source_ids for f in eval_features], dtype=torch.long
@@ -486,7 +378,7 @@ def main():
 
                 eval_sampler = SequentialSampler(eval_data)
                 eval_dataloader = DataLoader(
-                    eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size
+                    eval_data, sampler=eval_sampler, batch_size=training_config.eval_batch_size
                 )
 
                 model.eval()
@@ -508,8 +400,8 @@ def main():
                             p.append(text)
                 model.train()
                 predictions = []
-                with open(args.output_dir + "/dev.output", "w") as f, open(
-                    args.output_dir + "/dev.gold", "w"
+                with open(training_config.output_dir + "/dev.output", "w") as f, open(
+                        training_config.output_dir + "/dev.gold", "w"
                 ) as f1:
                     for ref, gold in zip(p, eval_examples):
                         predictions.append(str(gold.idx) + "\t" + ref)
@@ -517,7 +409,7 @@ def main():
                         f1.write(str(gold.idx) + "\t" + gold.target + "\n")
 
                 (goldMap, predictionMap) = bleu.compute_maps(
-                    predictions, os.path.join(args.output_dir, "dev.gold")
+                    predictions, os.path.join(training_config.output_dir, "dev.gold")
                 )
                 dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
                 logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
@@ -527,7 +419,7 @@ def main():
                     logger.info("  " + "*" * 20)
                     best_bleu = dev_bleu
                     # Save best checkpoint for best bleu
-                    output_dir = os.path.join(args.output_dir, "checkpoint-best-bleu")
+                    output_dir = os.path.join(training_config.output_dir, "checkpoint-best-bleu")
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
                     model_to_save = (
@@ -540,15 +432,15 @@ def main():
                     patience += 1
                     if patience == 2:
                         break
-    if args.do_test:
+    if training_config.do_test:
         checkpoint_prefix = "checkpoint-best-bleu/pytorch_model.bin"
-        output_dir = os.path.join(args.output_dir, checkpoint_prefix)
+        output_dir = os.path.join(training_config.output_dir, checkpoint_prefix)
         model_to_load = model.module if hasattr(model, "module") else model
         model_to_load.load_state_dict(torch.load(output_dir))
 
-        eval_examples = read_examples(args.test_filename)
+        eval_examples = read_examples(training_config.test_filename)
         eval_features = convert_examples_to_features(
-            eval_examples, tokenizer, args, stage="test"
+            eval_examples, tokenizer, training_config, stage="test"
         )
         all_source_ids = torch.tensor(
             [f.source_ids for f in eval_features], dtype=torch.long
@@ -558,7 +450,7 @@ def main():
         # Calculate bleu
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(
-            eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size
+            eval_data, sampler=eval_sampler, batch_size=training_config.eval_batch_size
         )
 
         model.eval()
@@ -579,8 +471,8 @@ def main():
 
         model.train()
         predictions = []
-        with open(args.output_dir + "/test.output", "w") as f, open(
-            args.output_dir + "/test.gold", "w"
+        with open(training_config.output_dir + "/test.output", "w") as f, open(
+                training_config.output_dir + "/test.gold", "w"
         ) as f1:
             for ref, gold in zip(p, eval_examples):
                 predictions.append(str(gold.idx) + "\t" + ref)
@@ -588,7 +480,7 @@ def main():
                 f1.write(str(gold.idx) + "\t" + gold.target + "\n")
 
         (goldMap, predictionMap) = bleu.compute_maps(
-            predictions, os.path.join(args.output_dir, "test.gold")
+            predictions, os.path.join(training_config.output_dir, "test.gold")
         )
         dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
         logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
