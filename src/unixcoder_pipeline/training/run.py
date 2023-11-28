@@ -318,7 +318,7 @@ def main(training_config: DictConfig):
                 )
                 dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
                 wandb.log(
-                    {"eval_bleu": "  %s = %s " % ("bleu-4", str(dev_bleu))}
+                    {"eval_bleu": dev_bleu}
                 )
                 logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
                 logger.info("  " + "*" * 20)
