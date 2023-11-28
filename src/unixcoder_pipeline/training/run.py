@@ -26,15 +26,15 @@ from typing import Dict, Tuple, List
 import hydra
 import wandb
 
-from src.unixcoder_pipeline.data_processing.process_features import read_examples, convert_examples_to_features, Example
-from src.unixcoder_pipeline.training.metrics import bleu
+from unixcoder_pipeline.data_processing.process_features import read_examples, convert_examples_to_features, Example
+from unixcoder_pipeline.training.metrics import bleu
 from omegaconf import DictConfig
 import torch
 import random
 import logging
 import numpy as np
 from io import open
-from src.unixcoder_pipeline.model.model import Seq2Seq
+from unixcoder_pipeline.model.model import Seq2Seq
 from tqdm import tqdm
 from torch.utils.data import (
     DataLoader,
@@ -52,7 +52,7 @@ from transformers import (  # type: ignore
     RobertaTokenizer,
 )
 
-from src.unixcoder_pipeline.utils import set_seed
+from unixcoder_pipeline.utils import set_seed
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
