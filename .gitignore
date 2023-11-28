@@ -17,6 +17,7 @@ __pycache__/
 models/
 checkpoints/
 outputs/
+wandb/
 
 # Ignore data files (if they are large or proprietary)
 data/

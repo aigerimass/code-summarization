@@ -22,13 +22,14 @@ using a masked language modeling (MLM) loss.
 from __future__ import absolute_import
 import os
 import hydra
+import wandb
+
+from src.data_processing.process_features import read_examples, convert_examples_to_features
 from src.training.metrics import bleu
 from omegaconf import DictConfig
 import torch
-import json
 import random
 import logging
-import argparse
 import numpy as np
 from io import open
 from src.model.model import Seq2Seq
@@ -49,6 +50,8 @@ from transformers import (  # type: ignore
     RobertaTokenizer,
 )
 
+from src.utils import set_seed
+
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
@@ -57,126 +60,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class Example(object):
-    """A single training/test example."""
-
-    def __init__(
-            self,
-            idx,
-            source,
-            target,
-    ):
-        self.idx = idx
-        self.source = source
-        self.target = target
-
-
-def read_examples(filename):
-    """Read examples from filename."""
-    examples = []
-    with open(filename, encoding="utf-8") as f:
-        for idx, line in enumerate(f):
-            line = line.strip()
-            js = json.loads(line)
-            if "idx" not in js:
-                js["idx"] = idx
-            code = " ".join(js["code_tokens"]).replace("\n", " ")
-            code = " ".join(code.strip().split())
-            nl = " ".join(js["docstring_tokens"]).replace("\n", "")
-            nl = " ".join(nl.strip().split())
-            examples.append(
-                Example(
-                    idx=idx,
-                    source=code,
-                    target=nl,
-                )
-            )
-    return examples
-
-
-class InputFeatures(object):
-    """A single training/test features for a example."""
-
-    def __init__(
-            self,
-            example_id,
-            source_ids,
-            target_ids,
-    ):
-        self.example_id = example_id
-        self.source_ids = source_ids
-        self.target_ids = target_ids
-
-
-def convert_examples_to_features(examples, tokenizer, args, stage=None):
-    """convert examples to token ids"""
-    features = []
-    for example_index, example in enumerate(examples):
-        # source
-        source_tokens = tokenizer.tokenize(example.source)[: args.max_source_length - 5]
-        source_tokens = (
-                [tokenizer.cls_token, "<encoder-decoder>", tokenizer.sep_token, "<mask0>"]
-                + source_tokens
-                + [tokenizer.sep_token]
-        )
-        source_ids = tokenizer.convert_tokens_to_ids(source_tokens)
-        padding_length = args.max_source_length - len(source_ids)
-        source_ids += [tokenizer.pad_token_id] * padding_length
-
-        # target
-        if stage == "test":
-            target_tokens = tokenizer.tokenize("None")
-        else:
-            target_tokens = tokenizer.tokenize(example.target)[
-                            : args.max_target_length - 2
-                            ]
-        target_tokens = ["<mask0>"] + target_tokens + [tokenizer.sep_token]
-        target_ids = tokenizer.convert_tokens_to_ids(target_tokens)
-        padding_length = args.max_target_length - len(target_ids)
-        target_ids += [tokenizer.pad_token_id] * padding_length
-
-        if example_index < 5:
-            if stage == "train":
-                logger.info("*** Example ***")
-                logger.info("idx: {}".format(example.idx))
-
-                logger.info(
-                    "source_tokens: {}".format(
-                        [x.replace("\u0120", "_") for x in source_tokens]
-                    )
-                )
-                logger.info("source_ids: {}".format(" ".join(map(str, source_ids))))
-
-                logger.info(
-                    "target_tokens: {}".format(
-                        [x.replace("\u0120", "_") for x in target_tokens]
-                    )
-                )
-                logger.info("target_ids: {}".format(" ".join(map(str, target_ids))))
-
-        features.append(
-            InputFeatures(
-                example_index,
-                source_ids,
-                target_ids,
-            )
-        )
-    return features
-
-
-def set_seed(seed=42):
-    random.seed(seed)
-    os.environ["PYHTONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-
-
 @hydra.main(config_path="../training/configs", config_name="finetune", version_base=None)
 def main(training_config: DictConfig):
     # set log
-    print("Here")
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -220,10 +106,23 @@ def main(training_config: DictConfig):
         model = torch.nn.DataParallel(model)
 
     if training_config.do_train:
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project="code-summarization",
+
+            # track hyperparameters and run metadata
+            config={
+                "learning_rate": training_config.learning_rate,
+                "architecture": "CNN",
+                "dataset": "code-search-net",
+                "epochs": training_config.num_train_epochs,
+            }
+        )
+
         # Prepare training data loader
         train_examples = read_examples(training_config.train_filename)
         train_features = convert_examples_to_features(
-            train_examples, tokenizer, training_config, stage="train"
+            train_examples, tokenizer, training_config, logger, stage="train"
         )
         all_source_ids = torch.tensor(
             [f.source_ids for f in train_features], dtype=torch.long
@@ -298,18 +197,18 @@ def main(training_config: DictConfig):
                     optimizer.zero_grad()
                     scheduler.step()
                     if len(losses) // training_config.gradient_accumulation_steps % 100 == 0:
+                        loss_val = round(
+                            float(np.mean(losses[-100 * training_config.gradient_accumulation_steps:])),
+                            4,
+                        )
+                        wandb.log(
+                            {"train-loss": loss_val}
+                        )
                         logger.info(
                             "epoch {} step {} loss {}".format(
                                 epoch,
                                 len(losses) // training_config.gradient_accumulation_steps,
-                                round(
-                                    np.mean(
-                                        losses[
-                                        -100 * training_config.gradient_accumulation_steps:
-                                        ]
-                                    ),
-                                    4,
-                                ),
+                                loss_val,
                             )
                         )
             if training_config.do_eval:
@@ -319,7 +218,7 @@ def main(training_config: DictConfig):
                 else:
                     eval_examples = read_examples(training_config.dev_filename)
                     eval_features = convert_examples_to_features(
-                        eval_examples, tokenizer, training_config, stage="dev"
+                        eval_examples, tokenizer, training_config, logger, stage="dev"
                     )
                     all_source_ids = torch.tensor(
                         [f.source_ids for f in eval_features], dtype=torch.long
@@ -355,6 +254,9 @@ def main(training_config: DictConfig):
                 model.train()
                 eval_loss = eval_loss / tokens_num
                 result = {"eval_ppl": round(np.exp(eval_loss), 5)}
+                wandb.log(
+                    {"eval_ppl": round(np.exp(eval_loss), 5)}
+                )
                 for key in sorted(result.keys()):
                     logger.info("  %s = %s", key, str(result[key]))
                 logger.info("  " + "*" * 20)
@@ -368,7 +270,7 @@ def main(training_config: DictConfig):
                         eval_examples, min(1000, len(eval_examples))
                     )
                     eval_features = convert_examples_to_features(
-                        eval_examples, tokenizer, training_config, stage="test"
+                        eval_examples, tokenizer, training_config, logger, stage="test"
                     )
                     all_source_ids = torch.tensor(
                         [f.source_ids for f in eval_features], dtype=torch.long
@@ -412,6 +314,9 @@ def main(training_config: DictConfig):
                     predictions, os.path.join(training_config.output_dir, "dev.gold")
                 )
                 dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
+                wandb.log(
+                    {"eval_bleu": "  %s = %s " % ("bleu-4", str(dev_bleu))}
+                )
                 logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
                 logger.info("  " + "*" * 20)
                 if dev_bleu > best_bleu:
@@ -432,6 +337,8 @@ def main(training_config: DictConfig):
                     patience += 1
                     if patience == 2:
                         break
+        wandb.finish()
+
     if training_config.do_test:
         checkpoint_prefix = "checkpoint-best-bleu/pytorch_model.bin"
         output_dir = os.path.join(training_config.output_dir, checkpoint_prefix)
@@ -440,7 +347,7 @@ def main(training_config: DictConfig):
 
         eval_examples = read_examples(training_config.test_filename)
         eval_features = convert_examples_to_features(
-            eval_examples, tokenizer, training_config, stage="test"
+            eval_examples, tokenizer, training_config, logger, stage="test"
         )
         all_source_ids = torch.tensor(
             [f.source_ids for f in eval_features], dtype=torch.long
