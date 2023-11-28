@@ -32,6 +32,9 @@ cd ..
 
 - pip install torch
 - pip install transformers
+- pip install jinja2
+- pip install python-multipart
+- fastapi
 
 ## Fine-Tune Setting
 
