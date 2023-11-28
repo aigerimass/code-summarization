@@ -21,10 +21,13 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import
 import os
+from typing import Dict, Tuple, List
+
 import hydra
 import wandb
+from torch.nn import DataParallel
 
-from src.data_processing.process_features import read_examples, convert_examples_to_features
+from src.data_processing.process_features import read_examples, convert_examples_to_features, Example
 from src.training.metrics import bleu
 from omegaconf import DictConfig
 import torch
@@ -101,9 +104,9 @@ def main(training_config: DictConfig):
     logger.info("Training/evaluation parameters %s", training_config)
     model.to(device)
 
-    if training_config.n_gpu > 1:
-        # multi-gpu training
-        model = torch.nn.DataParallel(model)
+    # if training_config.n_gpu > 1:
+    #     # multi-gpu training
+    #     model = torch.nn.DataParallel(model)
 
     if training_config.do_train:
         wandb.init(
@@ -177,7 +180,8 @@ def main(training_config: DictConfig):
         logger.info("  Num epoch = %d", training_config.num_train_epochs)
 
         model.train()
-        patience, best_bleu, losses, dev_dataset = 0, 0, [], {}
+        patience, best_bleu, losses = 0, 0, []
+        dev_dataset: Dict[str, Tuple[List[Example], TensorDataset]] = {}
         for epoch in range(training_config.num_train_epochs):
             for idx, batch in enumerate(train_dataloader):
                 batch = tuple(t.to(device) for t in batch)
@@ -239,7 +243,7 @@ def main(training_config: DictConfig):
 
                 # Start Evaling model
                 model.eval()
-                eval_loss, tokens_num = 0, 0
+                eval_loss, tokens_num = 0., 0
                 for batch in eval_dataloader:
                     batch = tuple(t.to(device) for t in batch)
                     source_ids, target_ids = batch
