@@ -16,6 +16,8 @@ __pycache__/
 # Ignore model artifacts and checkpoints
 models/
 checkpoints/
+outputs/
+wandb/
 
 # Ignore data files (if they are large or proprietary)
 data/
