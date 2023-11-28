@@ -5,6 +5,12 @@ description = ""
 authors = ["Aigerim Assylkhanova <assylkhanova0@gmail.com>",
 "Nikita Abramov <n8ron2206@gmail.com>"]
 readme = "README.md"
+packages = [
+    { include = "unixcoder_pipeline", from = "src" },
+]
+
+[tool.poetry.scripts]
+unixcoder-train = "unixcoder_pipeline.training.run:main"
 
 [tool.poetry.dependencies]
 python = "^3.9"
