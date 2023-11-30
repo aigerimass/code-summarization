@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -9,7 +10,7 @@ app = FastAPI(
 )
 
 # Jinja2 templates configuration
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 
 # initialize model
@@ -25,3 +26,7 @@ async def process_form(request: Request, code: str = Form(...)):
 
     return templates.TemplateResponse("result.html",
                                       {"request": request, "code": code, "result_summary": result_summary})
+
+
+def start():
+    uvicorn.run("app.main:app", reload=True)
