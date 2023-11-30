@@ -6,11 +6,6 @@ from transformers import RobertaTokenizer, RobertaConfig, RobertaModel
 from unixcoder_pipeline.model.model import Seq2Seq
 
 logger = logging.getLogger(__name__)
-# might be slow for the first time
-_model = torch.jit.load('model_example.pt')
-
-# set model to eval mode
-_model.eval()
 
 model_name_or_path = "microsoft/unixcoder-base"
 
@@ -19,7 +14,7 @@ _config = RobertaConfig.from_pretrained(model_name_or_path)
 _config.is_decoder = True
 _encoder = RobertaModel.from_pretrained(model_name_or_path, config=_config)
 
-model = Seq2Seq(
+_model = Seq2Seq(
     encoder=_encoder,
     decoder=_encoder,
     config=_config,
@@ -31,15 +26,16 @@ model = Seq2Seq(
 device = "cpu"
 
 checkpoint_prefix = "pytorch_model.bin"
-_model_to_load = model.module if hasattr(model, "module") else model
+_model_to_load = _model.module if hasattr(_model, "module") else _model
 _model_to_load.load_state_dict(torch.load(checkpoint_prefix))
+_model.eval()
 
 
 def predict(
     context: str,
 ) -> str:
-    tokens_ids = model.tokenize([context], max_length=512, mode="<encoder-decoder>")
+    tokens_ids = _model.tokenize([context], max_length=512, mode="<encoder-decoder>")
     source_ids = torch.tensor(tokens_ids).to(device)
-    prediction_ids = model.generate(source_ids)
-    predictions = model.decode(prediction_ids)
+    prediction_ids = _model.generate(source_ids)
+    predictions = _model.decode(prediction_ids)
     return [x.replace("<mask0>", "").strip() for x in predictions[0]][0]
