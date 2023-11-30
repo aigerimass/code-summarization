@@ -11,6 +11,7 @@ packages = [
 
 [tool.poetry.scripts]
 unixcoder-train = "unixcoder_pipeline.training.run:main"
+start = "app.main:start"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -24,6 +25,7 @@ wandb = "^0.16.0"
 fastapi = "^0.104.1"
 jinja2 = "^3.1.2"
 python-multipart = "^0.0.6"
+uvicorn = "^0.24.0.post1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.7.1"
