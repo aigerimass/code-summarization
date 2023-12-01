@@ -25,17 +25,29 @@ _model = Seq2Seq(
 )
 device = "cpu"
 
-checkpoint_prefix = "pytorch_model.bin"
+checkpoint_prefix = "src/app/pytorch_model.bin"
 _model_to_load = _model.module if hasattr(_model, "module") else _model
-_model_to_load.load_state_dict(torch.load(checkpoint_prefix))
+_model_to_load.load_state_dict(torch.load(checkpoint_prefix, map_location=torch.device('cpu')))
+_model = _model.to(torch.device('cpu'))
 _model.eval()
 
 
 def predict(
     context: str,
 ) -> str:
-    tokens_ids = _model.tokenize([context], max_length=512, mode="<encoder-decoder>")
+    max_source_length = 256
+    tokens_ids = _tokenizer.tokenize(context)[: max_source_length]
+    tokens_ids = (
+            [_tokenizer.cls_token, "<encoder-decoder>", _tokenizer.sep_token, "<mask0>"]
+            + tokens_ids
+            + [_tokenizer.sep_token]
+    )
+    tokens_ids = _tokenizer.convert_tokens_to_ids(tokens_ids)
+    padding_length = max_source_length - len(tokens_ids)
+    tokens_ids += [_tokenizer.pad_token_id] * padding_length
+
     source_ids = torch.tensor(tokens_ids).to(device)
+    logger.error(f"HERE f{source_ids.size()}")
     prediction_ids = _model.generate(source_ids)
     predictions = _model.decode(prediction_ids)
     return [x.replace("<mask0>", "").strip() for x in predictions[0]][0]
