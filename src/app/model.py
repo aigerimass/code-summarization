@@ -30,24 +30,27 @@ _model_to_load = _model.module if hasattr(_model, "module") else _model
 _model_to_load.load_state_dict(torch.load(checkpoint_prefix, map_location=torch.device('cpu')))
 _model = _model.to(torch.device('cpu'))
 _model.eval()
+print(torch.cuda.is_available())
 
 
-def predict(
-    context: str,
-) -> str:
+def predict(context: str) -> str:
     max_source_length = 256
     tokens_ids = _tokenizer.tokenize(context)[: max_source_length]
     tokens_ids = (
-            [_tokenizer.cls_token, "<encoder-decoder>", _tokenizer.sep_token, "<mask0>"]
-            + tokens_ids
-            + [_tokenizer.sep_token]
+        [_tokenizer.cls_token, "<encoder-decoder>", _tokenizer.sep_token, "<mask0>"]
+        + tokens_ids
+        + [_tokenizer.sep_token]
     )
     tokens_ids = _tokenizer.convert_tokens_to_ids(tokens_ids)
     padding_length = max_source_length - len(tokens_ids)
     tokens_ids += [_tokenizer.pad_token_id] * padding_length
-
-    source_ids = torch.tensor(tokens_ids).to(device)
-    logger.error(f"HERE f{source_ids.size()}")
-    prediction_ids = _model.generate(source_ids)
-    predictions = _model.decode(prediction_ids)
-    return [x.replace("<mask0>", "").strip() for x in predictions[0]][0]
+    with torch.no_grad():
+        preds = _model(torch.LongTensor([tokens_ids]).to(torch.device('cpu')))
+        # convert ids to text
+        for pred in preds:
+            t = pred[0].cpu().numpy()
+            t = list(t)
+            if 0 in t:
+                t = t[: t.index(0)]
+            text = _tokenizer.decode(t, clean_up_tokenization_spaces=False)
+            return text
