@@ -1,0 +1,25 @@
+<!-- templates/history.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request History</title>
+     <link href="{{ url_for('static', path='/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <h1>Request History</h1>
+
+    {% for request_entry in request_history %}
+        <div class="history-container">
+            <p><strong>Code:</strong></p>
+            <pre>{{ request_entry["code"] }}</pre>
+            <p><strong>Result Summary:</strong></p>
+            <pre>{{ request_entry["result_summary"] }}</pre>
+            <hr>
+        </div>
+    {% endfor %}
+
+    <button onclick="location.href='/'">Go back to the main page</button>
+</body>
+</html>
