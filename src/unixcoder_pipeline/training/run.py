@@ -106,19 +106,18 @@ def main(training_config: DictConfig):
     # if training_config.n_gpu > 1:
     #     # multi-gpu training
     #     model = torch.nn.DataParallel(model)
-
+    wandb_config = {"architecture": "UnixCoder", "learning_rate": training_config.learning_rate,
+                    "num_train_epochs": training_config.num_train_epochs,
+                    "train_batch_size": training_config.train_batch_size, "beam_size": training_config.beam_size,
+                    "max_source_length": training_config.max_source_length,
+                    "max_target_length": training_config.max_target_length}
     if training_config.do_train:
         wandb.init(
             # set the wandb project where this run will be logged
             project="code-summarization",
 
             # track hyperparameters and run metadata
-            config={
-                "learning_rate": training_config.learning_rate,
-                "architecture": "CNN",
-                "dataset": "code-search-net",
-                "epochs": training_config.num_train_epochs,
-            }
+            config=wandb_config
         )
 
         # Prepare training data loader
@@ -318,7 +317,10 @@ def main(training_config: DictConfig):
                 )
                 dev_bleu = round(bleu.bleu_from_maps(goldMap, predictionMap)[0], 2)
                 wandb.log(
-                    {"eval_bleu": dev_bleu}
+                    {
+                        "eval_bleu": float(dev_bleu),
+                        "eval_ppl": round(np.exp(eval_loss), 5)
+                    }
                 )
                 logger.info("  %s = %s " % ("bleu-4", str(dev_bleu)))
                 logger.info("  " + "*" * 20)

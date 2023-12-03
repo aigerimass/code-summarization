@@ -82,7 +82,7 @@ class Seq2Seq(nn.Module):
         mask = source_ids.ne(1)[:, None, :] * source_ids.ne(1)[:, :, None]
         encoder_output = self.encoder(source_ids, attention_mask=mask, use_cache=True)
         preds = []
-        zero = torch.cuda.LongTensor(1).fill_(0)
+        zero = torch.cuda.LongTensor(1).fill_(0) if torch.cuda.is_available() else torch.LongTensor(1).fill_(0)
         source_len = list(source_ids.ne(1).sum(-1).cpu().numpy())
         for i in range(source_ids.shape[0]):
             context = [
@@ -134,7 +134,7 @@ class Seq2Seq(nn.Module):
 class Beam(object):
     def __init__(self, size, sos, eos):
         self.size = size
-        self.tt = torch.cuda
+        self.tt = torch.cuda if torch.cuda.is_available() else torch
         # The score for each translation on the beam.
         self.scores = self.tt.FloatTensor(size).zero_()
         # The backpointers at each time-step.
