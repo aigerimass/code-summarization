@@ -2,7 +2,7 @@
 
 ## Web App
 
-Welcome to the Code Summarizer, a web application powered by the UniXcoder machine learning model. This app enables you to easily generate concise summaries for your code snippets. Simply input your code, and the UniXcoder model will provide you with a clear and succinct summary of its functionality.
+Welcome to the Code Summarizer, a web application powered by the [UniXcoder](https://github.com/microsoft/CodeBERT/tree/master/UniXcoder) machine learning model. This app enables you to easily generate concise summaries for your code snippets. Simply input your code, and the UniXcoder model will provide you with a clear and succinct summary of its functionality.
 
 ### Features:
 
@@ -12,8 +12,16 @@ Welcome to the Code Summarizer, a web application powered by the UniXcoder machi
 
 - Request History: All your code summarization requests are stored in the history section, allowing you to revisit and review previous summaries.
 
-### How to Use:
+### How to Set Up
 
+- `pip install poetry` -- install poetry
+- `poetry install` -- install project with dependencies
+
+### How to Use:
+#### Fine-tune UniXcoder
+- `poetry run wandb login <API-KEY>` -- set up api key for wandb logging
+- `poetry run unixcoder-train`
+#### Web-App
 - `poetry run start` -- the URL to the web app will be provided in console.
 - Navigate to the web app.
 - Input your code snippet in the provided text area.
@@ -36,7 +44,9 @@ Proposed result:
 ['Write JSON to file', 'Write json to file', 'Write a json file']
 ```
 
-### Data Download
+### Data Download for fine-tuning
+
+Download [CodeXGLUE](https://github.com/microsoft/CodeXGLUE) dataset
 
 ```bash
 wget https://github.com/microsoft/CodeXGLUE/raw/main/Code-Text/code-to-text/dataset.zip
@@ -66,40 +76,4 @@ cd ..
 
 ### Fine-Tune Setting
 
-Here we provide fine-tune settings for code summarization, whose results are reported in the paper.
-
-```shell
-lang=python
-
-# Training
-python run.py \
-	--do_train \
-	--do_eval \
-	--model_name_or_path microsoft/unixcoder-base \
-	--train_filename dataset/$lang/train.jsonl \
-	--dev_filename dataset/$lang/valid.jsonl \
-	--output_dir saved_models/$lang \
-	--max_source_length 256 \
-	--max_target_length 128 \
-	--beam_size 10 \
-	--train_batch_size 48 \
-	--eval_batch_size 48 \
-	--learning_rate 5e-5 \
-	--gradient_accumulation_steps 2 \
-	--num_train_epochs 10 
-	
-# Evaluating	
-python src/training/run.py \
-	--do_test \
-	--model_name_or_path microsoft/unixcoder-base \
-	--test_filename dataset/$lang/test.jsonl \
-	--output_dir saved_models/$lang \
-	--max_source_length 256 \
-	--max_target_length 128 \
-	--beam_size 10 \
-	--train_batch_size 48 \
-	--eval_batch_size 48 \
-	--learning_rate 5e-5 \
-	--gradient_accumulation_steps 2 \
-	--num_train_epochs 10 	
-```
+For set up different fine-tune settings modify [finetune.yaml](src/unixcoder_pipeline/training/configs/finetune.yaml) or add new config to [src/unixcoder_pipeline/training/configs](src/unixcoder_pipeline/training/configs)
