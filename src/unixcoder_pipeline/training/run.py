@@ -119,6 +119,8 @@ def main(training_config: DictConfig):
             # track hyperparameters and run metadata
             config=wandb_config
         )
+        wandb.define_metric("eval_bleu", summary="max")
+        wandb.define_metric("eval_ppl", summary="min")
 
         # Prepare training data loader
         train_examples = read_examples(training_config.train_filename)
@@ -256,9 +258,6 @@ def main(training_config: DictConfig):
                 model.train()
                 eval_loss = eval_loss / tokens_num
                 result = {"eval_ppl": round(np.exp(eval_loss), 5)}
-                wandb.log(
-                    {"eval_ppl": round(np.exp(eval_loss), 5)}
-                )
                 for key in sorted(result.keys()):
                     logger.info("  %s = %s", key, str(result[key]))
                 logger.info("  " + "*" * 20)
