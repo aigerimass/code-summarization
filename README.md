@@ -1,6 +1,42 @@
 # Code Summarization
 
-## Data Download
+## Web App
+
+Welcome to the Code Summarizer, a web application powered by the UniXcoder machine learning model. This app enables you to easily generate concise summaries for your code snippets. Simply input your code, and the UniXcoder model will provide you with a clear and succinct summary of its functionality.
+
+### Features:
+
+- Code Summarization: Obtain quick and meaningful summaries for your code to enhance understanding and readability.
+
+- Web Interface: User-friendly web-based interface for seamless interaction.
+
+- Request History: All your code summarization requests are stored in the history section, allowing you to revisit and review previous summaries.
+
+### How to Use:
+
+- `poetry run start` -- the URL to the web app will be provided in console.
+- Navigate to the web app.
+- Input your code snippet in the provided text area.
+- Click "Submit" to receive a summary.
+- Explore the history section to review past code summarization requests.
+
+## Code Summarization problem
+
+### Example
+```python
+def write_json(data,file_path):
+    data = json.dumps(data)
+    with open(file_path, 'w') as f:
+        f.write(data)
+```
+
+Proposed result:
+
+```python
+['Write JSON to file', 'Write json to file', 'Write a json file']
+```
+
+### Data Download
 
 ```bash
 wget https://github.com/microsoft/CodeXGLUE/raw/main/Code-Text/code-to-text/dataset.zip
@@ -28,12 +64,7 @@ rm -r */final
 cd ..
 ```
 
-## Dependency 
-
-- pip install torch
-- pip install transformers
-
-## Fine-Tune Setting
+### Fine-Tune Setting
 
 Here we provide fine-tune settings for code summarization, whose results are reported in the paper.
 
