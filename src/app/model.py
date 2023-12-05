@@ -54,3 +54,4 @@ def predict(context: str) -> str:
                 t = t[: t.index(0)]
             text = _tokenizer.decode(t, clean_up_tokenization_spaces=False)
             return text
+    raise NotImplementedError("torch.no_grad() error")
