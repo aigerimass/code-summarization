@@ -1,7 +1,7 @@
 import logging
 
 import torch
-from transformers import RobertaTokenizer, RobertaConfig, RobertaModel
+from transformers import RobertaTokenizer, RobertaConfig, RobertaModel  # type: ignore
 
 from unixcoder_pipeline.model.model import Seq2Seq
 
