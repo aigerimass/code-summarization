@@ -5,7 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN pip install poetry
 
 # Copy only the poetry-related files into the container
 COPY pyproject.toml poetry.lock /app/
