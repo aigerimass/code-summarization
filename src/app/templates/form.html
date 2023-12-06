@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Summarizer</title>
+     <link href="{{ url_for('static', path='/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <h1>Code Summarizer</h1>
+    <div class="container">
+        <form method="post">
+            <label for="code">Enter your code:</label>
+            <textarea name="code" id="code" required maxlength="256"></textarea>
+            <br>
+            <button type="submit">Submit</button>
+            <button onclick="location.href='/history'">History</button>
+        </form>
+    </div>
+</body>
+</html>

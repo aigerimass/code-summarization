@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Summarizer - Result</title>
+     <link href="{{ url_for('static', path='/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <h1>Code Summarizer - Result</h1>
+    <div class="result-container">
+        <p><strong>Summarization:</strong></p>
+        <p>{{ result_summary }}</p>
+        <p><strong>Input Code:</strong></p>
+        <pre>{{ code }}</pre>
+    </div>
+    <button onclick="location.href='/history'">History</button>
+    <button onclick="location.href='/'">Go back</button>
+</body>
+</html>
