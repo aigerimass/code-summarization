@@ -17,12 +17,19 @@ Welcome to the Code Summarizer, a web application powered by the [UniXcoder](htt
 - `pip install poetry` -- install poetry
 - `poetry install` -- install project with dependencies
 
+Or using Docker:
+- `docker build -t code-summarization-app .` -- build image
+- `docker run -p 80:80 code-summarization-app` -- run container
+
 ### How to Use:
 #### Fine-tune UniXcoder
 - `poetry run wandb login <API-KEY>` -- set up api key for wandb logging
 - `poetry run unixcoder-train`
 #### Web-App
-- `poetry run start` -- the URL to the web app will be provided in console.
+- `poetry run start` -- the URL to the web app will be provided in console
+- Running container in Docker will create an app on localhost 80 port.
+
+
 - Navigate to the web app.
 - Input your code snippet in the provided text area.
 - Click "Submit" to receive a summary.
